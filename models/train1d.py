@@ -79,7 +79,8 @@ def preprocess_config(parser):
 	parser.add_argument('--steps', default=100000,type=int)
 	parser.add_argument('--boundary_points',default=300,type=int)
 	parser.add_argument('--collocation_points', default=20000,type=int)
-	parser.add_argument('--time_range',default=[-0.6,0,0.02],  action='store', type=float, nargs='*')
+	parser.add_argument('--lambd_list',default=[1,1,1],  action='store', type=float, nargs='*')
+	parser.add_argument('--delta_range',default=[0.950,0.999,0.004],  action='store', type=float, nargs='*')
 	parser.add_argument('--width_range',default=[4,8,1],  action='store', type=int, nargs='*')
 	parser.add_argument('--seed',default=[1234],  action='store', type=int, nargs='*')
 	return parser
@@ -90,73 +91,75 @@ if __name__=="__main__":
     parser = preprocess_config(parser)
     args = vars(parser.parse_args())
 
-
-    torch.manual_seed(1234)
-
     'Training Parameters'
     lr = args["lr"]
     wt_decay = args["wt_decay"]
     steps = args["steps"]
     Nu = args["boundary_points"]
     Nf = args["collocation_points"]
-    t_min_enum = dict(enumerate(np.arange(args["time_range"][0],args["time_range"][1],args["time_range"][2])))
+    delta_enum = dict(enumerate(np.arange(args["delta_range"][0],args["delta_range"][1],args["delta_range"][2])))
     width_pow_enum = dict(enumerate(np.arange(args["width_range"][0],args["width_range"][1],args["width_range"][2])))
-    lambd_list = torch.tensor([[1,1,1]])
+    lambd_list = torch.tensor([args["lambd_list"]])
+    
+    x_min = -1
+    x_max = 1
+    total_points = int(1.2 * Nf)
 
+    for seed in args["seed"]:
+        torch.manual_seed(seed)
+        os.mkdir(f"./seed{seed}")
+        for delta_idx in range(len(delta_enum)):
+            for width_pow_idx in range(len(width_pow_enum)):
+                delta = delta_enum[delta_idx]
+                width_pow = width_pow_enum[width_pow_idx]
+                width = 2**width_pow
+                layers = np.array([2, width, width, 1])
 
-    # for t_min_index in range(0,len(t_min_dict)):
-    for width_pow_idx in range(7,len(width_pow_enum)):
-        width_pow = width_pow_enum[width_pow_idx]
-        width = 2**width_pow
-        layers = np.array([2, width, width, 1])
-        X_train_Nu, U_train_Nu, X_train_Nf, x_test, X_train_temp, U_train_temp = data_preparation(delta)
-        'Store tensors to GPU'
-        X_train_Nu=X_train_Nu.float().to(device)#Training Points (BC)
-        U_train_Nu=U_train_Nu.float().to(device)#Training Points (BC)
-        X_train_Nf=X_train_Nf.float().to(device)#Collocation Points
-        # f_hat = torch.zeros(X_train_Nf.shape[0],1).to(device)#to minimize function
-        X_test=test_data_preparation(delta).float().to(device) # the input dataset (complete)
-        X_BC_test = X_train_temp.float().to(device)
-        U_BC_test = U_train_temp.float().to(device)
-        # Y_test=y_test.float().to(device) # the real solution
-        for lambd in lambd_list:
-            lambd = lambd.to(device)
-            'Create model'
-            PINN = FCN(layers)
-            PINN.to(device)
-            print(PINN)
-            params = list(PINN.parameters())
-            optimizer = torch.optim.Adam(PINN.parameters(),lr=lr,amsgrad=False, weight_decay=wt_decay)
-            print(f"LAMBDA = {'_'.join([str(x) for x in lambd])} DELTA = {delta} WIDTH = {width}")
-            train_loss = []
-            test_loss = []
-            start_time = time.time()
+                X_train_Nu, U_train_Nu, X_train_Nf, x_test, X_train_temp, U_train_temp = data_preparation(x_min,x_max,delta,total_points,Nu,Nf)
+                'Store tensors to GPU'
+                X_train_Nu=X_train_Nu.float().to(device)#Training Points (BC)
+                U_train_Nu=U_train_Nu.float().to(device)#Training Points (BC)
+                X_train_Nf=X_train_Nf.float().to(device)#Collocation Points
 
-            for i in range(steps):
-                if i==0:
-                    print("Step --- Time --- Training Loss --- Test Loss")
-                loss = PINN.loss(X_train_Nu,U_train_Nu,X_train_Nf)# use mean squared error
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                train_loss.append(loss.detach().cpu().numpy())
-    #             if (i%10000)==0:
-    #                 test_loss.append(PINN.test_loss(X_BC_test,U_BC_test,X_test).detach().cpu().numpy())
-                if (i%10000)==0:
-                    # print(f"{i} --- {(time.time()-start_time)/60} --- {training_loss[-1]}---{test_loss[-1]}")
-                    print(f"{i} --- {(time.time()-start_time)/60} --- {train_loss[-1]}")
+                # X_test=test_data_preparation(delta).float().to(device) # the input dataset (complete)
+                # X_BC_test = X_train_temp.float().to(device)
+                # U_BC_test = U_train_temp.float().to(device)
+                for lambd in lambd_list:
+                    lambd = lambd.to(device)
+                    'Create model'
+                    PINN = FCN(layers,lambd,device)
+                    PINN.to(device)
+                    print(PINN)
+                    params = list(PINN.parameters())
+                    optimizer = torch.optim.Adam(PINN.parameters(),lr=lr,amsgrad=False, weight_decay=wt_decay)
+                    print(f"LAMBDA = {'_'.join([str(x) for x in lambd])} DELTA = {delta} WIDTH = {width}")
+                    train_loss = []
+                    # test_loss = []
                     start_time = time.time()
-                # if((len(test_loss)>1 and test_loss[-1]<test_loss[-2]) or len(test_loss)==1):
-                #   model_least_test_loss = copy.deepcopy(PINN.state_dict())
-                #   epoch_least_test_loss = i
-                if((len(train_loss)>1 and train_loss[-1]<train_loss[-2]) or len(train_loss)==1):
-                    model_least_train_loss = copy.deepcopy(PINN.state_dict())
-                    epoch_least_train_loss = i
 
-            torch.save(model_least_train_loss, f"./Burger_lr={lr}_width={width}_tmin,tmax_{-1+delta},{delta}_Nu={Nu}_Nf={Nf}_steps={steps}_trainl={min(train_loss)}")
-            # torch.save(PINN.state_dict(), f"{directory_path}2DBurger's/{str(date.today())}/Burger_lr={lr}_[x_min,x_max]=[{x_min},{x_max}]_[tmin,tmax]_{t_min},{0.707+t_min}_total_points={total_points}_Nu={Nu}_Nf={Nf}_lambd={'_'.join([str(x) for x in lambd.cpu().numpy()])}_steps={steps}_tl={min(training_loss)}")
+                    for i in range(steps):
+                        if i==0:
+                            print("Step --- Time --- Training Loss --- Test Loss")
+                        loss = PINN.loss(X_train_Nu,U_train_Nu,X_train_Nf)# use mean squared error
+                        optimizer.zero_grad()
+                        loss.backward()
+                        optimizer.step()
+                        train_loss.append(loss.detach().cpu().numpy())
+            #             if (i%10000)==0:
+            #                 test_loss.append(PINN.test_loss(X_BC_test,U_BC_test,X_test).detach().cpu().numpy())
+                        if (i%10000)==0:
+                            print(f"{i} --- {(time.time()-start_time)/60} --- {train_loss[-1]}")
+                            start_time = time.time()
+                        # if((len(test_loss)>1 and test_loss[-1]<test_loss[-2]) or len(test_loss)==1):
+                        #   model_least_test_loss = copy.deepcopy(PINN.state_dict())
+                        #   epoch_least_test_loss = i
+                        if((len(train_loss)>1 and train_loss[-1]<train_loss[-2]) or len(train_loss)==1):
+                            model_least_train_loss = copy.deepcopy(PINN.state_dict())
+                            epoch_least_train_loss = i
 
-            'JSON files'
-            store_loss = {"train_loss":[x.tolist() for x in train_loss]}
-            with open(f"./train_loss_width={width}_delta={delta}.json", 'w') as fp:
-                json.dump(store_loss, fp)
+                    torch.save(model_least_train_loss, f"./seed{seed}/Burger_lr={lr}_width={width}_tmin,tmax_{round(-1+delta,3)},{round(delta,3)}_Nu={Nu}_Nf={Nf}_steps={steps}_trainl={min(train_loss)}")
+
+                    'JSON files'
+                    store_loss = {"train_loss":[x.tolist() for x in train_loss]}
+                    with open(f"./seed{seed}/train_loss_width={width}_delta={delta}.json", 'w') as fp:
+                        json.dump(store_loss, fp)
