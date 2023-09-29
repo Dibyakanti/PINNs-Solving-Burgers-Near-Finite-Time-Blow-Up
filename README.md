@@ -19,18 +19,18 @@ python3 ./models/train1d.py \
 --seed 1234
 
 argument details :
---lr: learnign rate \
---wt_decay: weight decay for the optimizer (regularization) \
---steps: number of training epochs \
---boundary_points: number of points for intial and boundary condition each \
---collocation_points: number of collocation points \
---lambd_list: weight for the different terms of the boundary and inital loss \
---delta_range: range of delta min, max and the step ( np.arange(min,max,step) ) \
---width_range: range of width min, max and the step ( np.arange(min,max,step) )  \
+--lr: learnign rate
+--wt_decay: weight decay for the optimizer (regularization) 
+--steps: number of training epochs 
+--boundary_points: number of points for intial and boundary condition each 
+--collocation_points: number of collocation points 
+--lambd_list: weight for the different terms of the boundary and inital loss 
+--delta_range: range of delta min, max and the step ( np.arange(min,max,step) ) 
+--width_range: range of width min, max and the step ( np.arange(min,max,step) )  
 --seed: seed for the random intialization (torch)
 ```
 
-### 1.1 (2+1)-Burgers'
+### 1.2 (2+1)-Burgers'
 To train the PINN and save the models for the 2+1 Burgers PDE
 ```
 python3 ./models/train2d.py \
@@ -44,12 +44,12 @@ python3 ./models/train2d.py \
 --seed 1234
 
 argument details :
---lr: learnign rate \
---wt_decay: weight decay for the optimizer (regularization) \
---steps: number of training epochs \
---boundary_points: number of points for intial and boundary condition each \
---collocation_points: number of collocation points \
---time_range: range of delta min, max and the step ( np.arange(min,max,step) ) \
---width_range: range of width min, max and the step ( np.arange(min,max,step) )  \
+--lr: learnign rate de
+--wt_decay: weight decay for the optimizer (regularization) 
+--steps: number of training epochs 
+--boundary_points: number of points for intial and boundary condition each 
+--collocation_points: number of collocation points 
+--time_range: range of delta min, max and the step ( np.arange(min,max,step) ) 
+--width_range: range of width min, max and the step ( np.arange(min,max,step) )  
 --seed: seed for the random intialization (torch)
 ```
