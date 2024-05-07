@@ -1,4 +1,4 @@
-# PINNs_Burgers
+# PINNs Solving Burgers' Near Finite-Time Blow-Up
 
 This repository contains the official code for the paper : [Investigating the Ability of PINNs To Solve Burgers' PDE Near Finite-Time BlowUp](https://arxiv.org/abs/2310.05169)
 
