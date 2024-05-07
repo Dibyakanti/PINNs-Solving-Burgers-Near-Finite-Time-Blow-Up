@@ -117,8 +117,13 @@ if __name__=="__main__":
                     if((len(train_loss)>1 and train_loss[-1]<train_loss[-2]) or len(train_loss)==1):
                         model_least_train_loss = copy.deepcopy(PINN.state_dict())
                         epoch_least_train_loss = i
+                
+                ' Save models and metadata '
 
-                torch.save(model_least_train_loss, f"./seed{seed}/Burger_seed={seed}_lr={lr}_width={width}_tmin,tmax_{t_min},{t_max}_Nu={Nu}_Nf={Nf}_steps={steps}_trainl={min(train_loss)}")
+                if(not os.path.exists(f"./seed{seed}")):
+                    os.mkdir(f"./seed{seed}")
+
+                torch.save(model_least_train_loss, f"./seed{seed}/Burgers2d_seed={seed}_lr={lr}_width={width}_tmin,tmax_{t_min},{t_max}_Nu={Nu}_Nf={Nf}_steps={steps}_trainl={min(train_loss)}")
 
                 'JSON files'
                 store_loss = {"train_loss":[x.tolist() for x in train_loss]}
