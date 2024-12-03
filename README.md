@@ -2,6 +2,22 @@
 
 This repository contains the official code for the paper : [Investigating the Ability of PINNs To Solve Burgers' PDE Near Finite-Time BlowUp](https://iopscience.iop.org/article/10.1088/2632-2153/ad51cd)
 
+```
+@article{kumar2024pinns,
+doi = {10.1088/2632-2153/ad51cd},
+url = {https://dx.doi.org/10.1088/2632-2153/ad51cd},
+year = {2024},
+month = {jun},
+publisher = {IOP Publishing},
+volume = {5},
+number = {2},
+pages = {025063},
+author = {Dibyakanti Kumar and Anirbit Mukherjee},
+title = {Investigating the ability of PINNs to solve Burgers’ PDE near finite-time blowup},
+journal = {Machine Learning: Science and Technology}
+}
+```
+
 ## 1. Training the PINNs
 
 ### 1.1 (1+1)-Burgers'
